@@ -1,0 +1,166 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: najaboughader-web-service
+  namespace: production
+spec:
+  selector:
+    app: najaboughader-web
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: najaboughader-web-deployment
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: najaboughader-web
+  template:
+    metadata:
+      labels:
+        app: najaboughader-web
+    spec:
+      containers:
+      - name: najaboughader-container
+        image: najaboughader/web:1
+        ports:
+        - containerPort: 80
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: najaboughader-db-service
+  namespace: production
+spec:
+  selector:
+    app: najaboughader-db
+  ports:
+    - protocol: TCP
+      port: 3306
+      targetPort: 3306
+  type: ClusterIP
+
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: mysql-pv
+  namespace: production
+spec:
+  capacity:
+    storage: 10Gi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteOnce
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: standard
+  hostPath:
+    path: /var/lib/mysql
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: database-pvc
+  namespace: production
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+  volumeName: mysql-pv
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: najaboughader-db-statefulset
+  namespace: production
+spec:
+  replicas: 1
+  serviceName: najaboughader-db-service
+  selector:
+    matchLabels:
+      app: najaboughader-db
+  template:
+    metadata:
+      labels:
+        app: najaboughader-db
+    spec:
+      containers:
+      - name: mysql-container
+        image: najaboughader/mysql:1
+        env:
+        - name: MYSQL_ROOT_PASSWORD
+          value: root
+        - name: MYSQL_DATABASE
+          value: UserPass
+        - name: MYSQL_USER
+          value: myuser
+        - name: MYSQL_PASSWORD
+          value: mypassword
+        volumeMounts:
+        - name: database-volume
+          mountPath: /var/lib/mysql
+  volumeClaimTemplates:
+  - metadata:
+      name: database-volume
+    spec:
+      accessModes: [ "ReadWriteOnce" ]
+      resources:
+        requests:
+          storage: 1Gi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: najaboughader-phpmyadmin-service
+  namespace: production
+spec:
+  selector:
+    app: najaboughader-phpmyadmin
+  ports:
+    - protocol: TCP
+      port: 8080
+      targetPort: 80
+  type: NodePort
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: najaboughader-phpmyadmin-deployment
+  namespace: production
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: najaboughader-phpmyadmin
+  template:
+    metadata:
+      labels:
+        app: najaboughader-phpmyadmin
+    spec:
+      containers:
+      - name: najaboughader-container
+        image: wissamrh/production-iits-php:173
+        ports:
+        - containerPort: 80
+        env:
+        - name: PMA_HOST
+          value: najaboughader-db-service
+        - name: PMA_USER
+          value: myuser
+        - name: PMA_PASSWORD
+          value: mypassword

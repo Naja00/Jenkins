@@ -30,7 +30,7 @@ spec:
     spec:
       containers:
       - name: najaboughader-container
-        image: najaboughader/web:1
+        image: najaboughader/web:3.0.1
         ports:
         - containerPort: 80
 
@@ -99,7 +99,7 @@ spec:
     spec:
       containers:
       - name: mysql-container
-        image: najaboughader/mysql:1
+        image: najaboughader/mysql:3.0.1
         env:
         - name: MYSQL_ROOT_PASSWORD
           value: root
@@ -154,7 +154,7 @@ spec:
     spec:
       containers:
       - name: najaboughader-container
-        image: wissamrh/production-iits-php:173
+        image: najaboughader/php:1
         ports:
         - containerPort: 80
         env:
